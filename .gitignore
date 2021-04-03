@@ -4,9 +4,9 @@
 .settings/
 Debug/
 Drivers/
-STM32L452RETX_FLASH.ld
-STM32L452RETX_RAM.ld
-uart2icy Debug.launch
-uart2icy.ioc
+#STM32L452RETX_FLASH.ld
+#STM32L452RETX_RAM.ld
+#uart2icy Debug.launch
+#uart2icy.ioc
 
 
