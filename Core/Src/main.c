@@ -48,6 +48,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t DO_SCAN = 0;
+uint8_t UART_TX_DONE = 0;
 
 /* USER CODE END PV */
 
@@ -63,6 +64,7 @@ GIRAFFE_i2c_status_t i2c_read_wrapper(uint16_t dev_addr, uint8_t *data, uint16_t
 GIRAFFE_i2c_status_t i2c_write_wrapper(uint16_t dev_addr, uint8_t *data, uint16_t len);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -135,8 +137,9 @@ int main(void)
 	  struct packet_data_s packet_data;
   } packet;
 
-  uint8_t startup_message[] = "DOG-TOOTHv01";
+  uint8_t startup_message[] = "DOG-TOOTHv02";
   transmit_status = HAL_UART_Transmit(&huart2, startup_message, 12, 1000);
+  //packet.outstr = "DOG-TOOTHv02";
 
   HAL_TIM_Base_Start_IT(&htim1);
 
@@ -147,14 +150,18 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	if (DO_SCAN)// && HAL_GPIO_ReadPin(GPIOC, FDC_INTB_Pin))
 	{
-	  transmit_status = HAL_UART_Transmit(&huart2, packet.outstr, 12, 1000);
+	  transmit_status = HAL_UART_Transmit_IT(&huart2, packet.outstr, 12);
 	  GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
 	  next_packet_data.status = 0;
 	  next_packet_data.seq++;
-	  //next_packet_data.chan_data = chan_data; //copy
-	  packet.packet_data = next_packet_data; //copy
+	  while (UART_TX_DONE == 0) {
+		  /* WAiT FOR iTT */ }
+
+	  packet.packet_data = next_packet_data; // *copy* next packet
+	  UART_TX_DONE = 0;
 	  DO_SCAN = 0;
 	}
+
 	//HAL_Delay(1);
 
   }
@@ -281,9 +288,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 4;
+  htim1.Init.Prescaler = 32;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 40130;
+  htim1.Init.Period = 20000;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -433,6 +440,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
       DO_SCAN = 1;
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	UART_TX_DONE = 1;
 }
 /* USER CODE END 4 */
 
