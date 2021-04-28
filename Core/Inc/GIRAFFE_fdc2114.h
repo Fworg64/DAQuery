@@ -57,17 +57,43 @@ typedef struct channel_data_s
 	uint16_t ch3;
 } GIRAFFE_FDC2114_channel_data_t;
 
+typedef struct i2c_fdc_it_state_s
+{
+	uint8_t read_data[8];
+	uint8_t num_reads_remaining;
+	uint8_t read_order[4];
+} GIRAFFE_FDC2114_IT_state_t;
+
 struct i2c_rw_funcs_s
 {
 	GIRAFFE_i2c_status_t (*i2c_write)(uint16_t, uint8_t *, uint16_t); // dev_address, data pointer, size
 	GIRAFFE_i2c_status_t (*i2c_read)(uint16_t, uint8_t*, uint16_t); // dev_address, data pointer, size
 } i2c_rw_funcs;
 
+struct i2c_rw_funcs_IT_s
+{
+	GIRAFFE_i2c_status_t (*i2c_write_it)(uint16_t, uint8_t *, uint16_t); // dev_address, data pointer, size
+	GIRAFFE_i2c_status_t (*i2c_read_it)(uint16_t, uint8_t*, uint16_t); // dev_address, data pointer, size
+} i2c_rw_funcs_IT;
+
 void GIRAFFE_FDC2114_initialize_lib(GIRAFFE_i2c_status_t (*i2c_read)(uint16_t, uint8_t *, uint16_t),
 		            GIRAFFE_i2c_status_t (*i2c_write)(uint16_t, uint8_t *, uint16_t));
 
+void GIRAFFE_FDC2114_initialize_IT(GIRAFFE_i2c_status_t (*i2c_read_it)(uint16_t, uint8_t *, uint16_t),
+		                           GIRAFFE_i2c_status_t (*i2c_write_it)(uint16_t, uint8_t *, uint16_t));
+
 GIRAFFE_i2c_status_t GIRAFFE_FDC2114_init_dev();
+
 void GIRAFFE_FDC2114_read_channels(GIRAFFE_FDC2114_channel_data_t* data);
+
+void GIRAFFE_FDC2114_read_channels_IT(GIRAFFE_FDC2114_IT_state_t *state);
+
+void GIRAFFE_FDC2114_get_chan_data_from_state(GIRAFFE_FDC2114_IT_state_t *state, GIRAFFE_FDC2114_channel_data_t *data);
+
+void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state);
+void GIRAFFE_FDC2114_read_clbk(GIRAFFE_FDC2114_IT_state_t *state);
+
+
 
 //void set_addr(); //set register addresses
 //void set_default_config_vals(uint16_t* vals);

@@ -104,6 +104,13 @@ void GIRAFFE_FDC2114_initialize_lib(GIRAFFE_i2c_status_t (*i2c_read)(uint16_t, u
 	set_default_config_vals(CONFIG_VALS);
 }
 
+void GIRAFFE_FDC2114_initialize_IT(GIRAFFE_i2c_status_t (*i2c_read_it)(uint16_t, uint8_t *, uint16_t),
+		                           GIRAFFE_i2c_status_t (*i2c_write_it)(uint16_t, uint8_t *, uint16_t))
+{
+	i2c_rw_funcs_IT.i2c_read_it = i2c_read_it;
+	i2c_rw_funcs_IT.i2c_write_it = i2c_write_it;
+}
+
 void write_register_list(const uint8_t* registers, const uint16_t* values, int number)
 {
   GIRAFFE_i2c_status_t result;
@@ -166,6 +173,37 @@ void GIRAFFE_FDC2114_read_channels(GIRAFFE_FDC2114_channel_data_t* data)
 	data->ch2 = (read_data[5] <<8) + read_data[4];
 	data->ch3 = (read_data[7] <<8) + read_data[6];
 }
+
+void GIRAFFE_FDC2114_read_channels_IT(GIRAFFE_FDC2114_IT_state_t *state)
+{
+	// Initialize State
+	state->num_reads_remaining = 4;
+	memset(state->read_data, 0, sizeof state->read_data);
+	state->read_order[0] = data_ch0; state->read_order[1] = data_ch1;
+	state->read_order[2] = data_ch2; state->read_order[3] = data_ch3;
+	// Start write
+	i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + read_order[0], 1);
+}
+
+void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state)
+{
+	i2c_rw_funcs_IT.i2c_read_it(0x2b << 1, state->read_data + 2*state->num_reads_remaining, 2);
+}
+
+void GIRAFFE_FDC2114_read_clbk(GIRAFFE_FDC2114_IT_state_t *state)
+{
+	if (--state->num_reads_remaining != 0)
+		i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + read_order[4-state->num_reads_remaining], 1);
+}
+
+void GIRAFFE_FDC2114_get_chan_data_from_state(GIRAFFE_FDC2114_IT_state_t *state, GIRAFFE_FDC2114_channel_data_t *data)
+{
+	data->ch0 = (state->read_data[1] <<8) + state->read_data[0];
+	data->ch1 = (state->read_data[3] <<8) + state->read_data[2];
+	data->ch2 = (state->read_data[5] <<8) + state->read_data[4];
+	data->ch3 = (state->read_data[7] <<8) + state->read_data[6];
+}
+
 
 /*
 void read_register_list(int fd, const uint8_t* registers, int number)
