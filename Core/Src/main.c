@@ -50,6 +50,7 @@ UART_HandleTypeDef huart2;
 uint8_t DO_SCAN = 0;
 uint8_t UART_TX_DONE = 0;
 
+GIRAFFE_FDC2114_IT_state_t i2c_state;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +63,8 @@ static void MX_TIM1_Init(void);
 void GIRAFFE_UART_Print(UART_HandleTypeDef *huart, char _out[]);
 GIRAFFE_i2c_status_t i2c_read_wrapper(uint16_t dev_addr, uint8_t *data, uint16_t len);
 GIRAFFE_i2c_status_t i2c_write_wrapper(uint16_t dev_addr, uint8_t *data, uint16_t len);
+GIRAFFE_i2c_status_t i2c_read_wrapper_IT(uint16_t dev_addr, uint8_t *data, uint16_t len);
+GIRAFFE_i2c_status_t i2c_write_wrapper_IT(uint16_t dev_addr, uint8_t *data, uint16_t len);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart);
@@ -109,6 +112,7 @@ int main(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
   // initialize fdc library
   GIRAFFE_FDC2114_initialize_lib(&i2c_read_wrapper, &i2c_write_wrapper);
+  GIRAFFE_FDC2114_initialize_IT(&i2c_read_wrapper_IT, &i2c_write_wrapper_IT);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET); // shutdown
   HAL_Delay(10); //flashy
   HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
@@ -143,6 +147,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim1);
 
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -150,18 +155,20 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	if (DO_SCAN)// && HAL_GPIO_ReadPin(GPIOC, FDC_INTB_Pin))
 	{
-	  transmit_status = HAL_UART_Transmit_IT(&huart2, packet.outstr, 12);
-	  GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
+	  //transmit_status = HAL_UART_Transmit_IT(&huart2, packet.outstr, 12);
+	  GIRAFFE_FDC2114_read_channels_IT(&i2c_state);
+	  //transmit_status = HAL_UART_Transmit(&huart2, packet.outstr, 12, HAL_MAX_DELAY);
+
+	  //GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
 	  next_packet_data.status = 0;
 	  next_packet_data.seq++;
-	  while (UART_TX_DONE == 0) {
+	  while (/*(UART_TX_DONE == 0) ||*/ (i2c_state.num_reads_remaining != 0)) {
 		  /* WAiT FOR iTT */ }
-
+	  GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
 	  packet.packet_data = next_packet_data; // *copy* next packet
 	  UART_TX_DONE = 0;
 	  DO_SCAN = 0;
 	}
-
 	//HAL_Delay(1);
 
   }
@@ -436,6 +443,20 @@ GIRAFFE_i2c_status_t i2c_write_wrapper(uint16_t dev_addr, uint8_t *data, uint16_
 	else return I2C_ERROR;
 }
 
+GIRAFFE_i2c_status_t i2c_read_wrapper_IT(uint16_t dev_addr, uint8_t *data, uint16_t len)
+{
+	if (HAL_I2C_Master_Receive_IT(&hi2c3, dev_addr, data, len) == HAL_OK)
+	return I2C_OK;
+	else return I2C_ERROR;
+}
+
+GIRAFFE_i2c_status_t i2c_write_wrapper_IT(uint16_t dev_addr, uint8_t *data, uint16_t len)
+{
+	if (HAL_I2C_Master_Transmit_IT(&hi2c3, dev_addr, data, len) == HAL_OK)
+	return I2C_OK;
+	else return I2C_ERROR;
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
@@ -445,6 +466,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	UART_TX_DONE = 1;
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	GIRAFFE_FDC2114_write_clbk(&i2c_state);
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	GIRAFFE_FDC2114_read_clbk(&i2c_state);
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+	while(1);
 }
 /* USER CODE END 4 */
 

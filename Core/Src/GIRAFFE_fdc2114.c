@@ -179,25 +179,29 @@ void GIRAFFE_FDC2114_read_channels_IT(GIRAFFE_FDC2114_IT_state_t *state)
 	// Initialize State
 	state->num_reads_remaining = 4;
 	memset(state->read_data, 0, sizeof state->read_data);
-	state->read_order[0] = data_ch0; state->read_order[1] = data_ch1;
+	state->read_order[0] = data_ch0; state->read_order[1] = data_ch1; //read order is fixed for read -> data conversion
 	state->read_order[2] = data_ch2; state->read_order[3] = data_ch3;
 	// Start write
-	i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + read_order[0], 1);
+	i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + state->read_order[0], 1);
 }
 
 void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state)
 {
-	i2c_rw_funcs_IT.i2c_read_it(0x2b << 1, state->read_data + 2*state->num_reads_remaining, 2);
+	if ((1 <= state->num_reads_remaining) && (state->num_reads_remaining  <= 4))
+	  i2c_rw_funcs_IT.i2c_read_it(0x2b << 1, state->read_data + 2*(4-state->num_reads_remaining), 2);
+	else
+		return;
 }
 
 void GIRAFFE_FDC2114_read_clbk(GIRAFFE_FDC2114_IT_state_t *state)
 {
 	if (--state->num_reads_remaining != 0)
-		i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + read_order[4-state->num_reads_remaining], 1);
+		i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + state->read_order[4-state->num_reads_remaining], 1);
 }
 
 void GIRAFFE_FDC2114_get_chan_data_from_state(GIRAFFE_FDC2114_IT_state_t *state, GIRAFFE_FDC2114_channel_data_t *data)
 {
+	// only works for fixed read order
 	data->ch0 = (state->read_data[1] <<8) + state->read_data[0];
 	data->ch1 = (state->read_data[3] <<8) + state->read_data[2];
 	data->ch2 = (state->read_data[5] <<8) + state->read_data[4];
