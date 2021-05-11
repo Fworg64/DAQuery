@@ -185,8 +185,25 @@ void GIRAFFE_FDC2114_read_channels_IT(GIRAFFE_FDC2114_IT_state_t *state)
 	i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + state->read_order[0], 1);
 }
 
+uint8_t GIRAFFE_is_error_severe(GIRAFFE_i2c_error_type_t err)
+{
+	switch (err)
+	{
+	  case BUS_ERROR:
+		  return 1;
+	  case OTHER_ERROR:
+		  return 0;
+	}
+	return 0;
+}
+
 void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state)
 {
+    if (GIRAFFE_is_error_severe(state->error))
+		{
+    	  state->num_reads_remaining = 0;
+    	  return;
+		}
 	if ((1 <= state->num_reads_remaining) && (state->num_reads_remaining  <= 4))
 	  i2c_rw_funcs_IT.i2c_read_it(0x2b << 1, state->read_data + 2*(4-state->num_reads_remaining), 2);
 	else
@@ -195,6 +212,11 @@ void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state)
 
 void GIRAFFE_FDC2114_read_clbk(GIRAFFE_FDC2114_IT_state_t *state)
 {
+    if (GIRAFFE_is_error_severe(state->error))
+		{
+    	  state->num_reads_remaining = 0;
+    	  return;
+		}
 	if (--state->num_reads_remaining != 0)
 		i2c_rw_funcs_IT.i2c_write_it(0x2b << 1, DATA_ADDR + state->read_order[4-state->num_reads_remaining], 1);
 }

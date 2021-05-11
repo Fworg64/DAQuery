@@ -49,6 +49,13 @@ typedef enum i2c_status
 	I2C_ERROR
 } GIRAFFE_i2c_status_t;
 
+typedef enum i2c_error_type
+{
+	NONE=0,
+	BUS_ERROR,
+	OTHER_ERROR
+} GIRAFFE_i2c_error_type_t;
+
 typedef struct channel_data_s
 {
 	uint16_t ch0;
@@ -62,6 +69,7 @@ typedef struct i2c_fdc_it_state_s
 	uint8_t read_data[8];
 	uint8_t num_reads_remaining;
 	uint8_t read_order[4];
+	GIRAFFE_i2c_error_type_t error;
 } GIRAFFE_FDC2114_IT_state_t;
 
 struct i2c_rw_funcs_s
@@ -92,6 +100,7 @@ void GIRAFFE_FDC2114_get_chan_data_from_state(GIRAFFE_FDC2114_IT_state_t *state,
 
 void GIRAFFE_FDC2114_write_clbk(GIRAFFE_FDC2114_IT_state_t *state);
 void GIRAFFE_FDC2114_read_clbk(GIRAFFE_FDC2114_IT_state_t *state);
+uint8_t GIRAFFE_is_error_severe(GIRAFFE_i2c_error_type_t err);
 
 
 

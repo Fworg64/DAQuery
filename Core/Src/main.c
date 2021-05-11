@@ -44,7 +44,7 @@ I2C_HandleTypeDef hi2c3;
 
 TIM_HandleTypeDef htim1;
 
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 uint8_t DO_SCAN = 0;
@@ -56,9 +56,9 @@ GIRAFFE_FDC2114_IT_state_t i2c_state;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void GIRAFFE_UART_Print(UART_HandleTypeDef *huart, char _out[]);
 GIRAFFE_i2c_status_t i2c_read_wrapper(uint16_t dev_addr, uint8_t *data, uint16_t len);
@@ -105,9 +105,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
   MX_I2C3_Init();
   MX_TIM1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
   // initialize fdc library
@@ -142,7 +142,7 @@ int main(void)
   } packet;
 
   uint8_t startup_message[] = "DOG-TOOTHv02";
-  transmit_status = HAL_UART_Transmit(&huart2, startup_message, 12, 1000);
+  transmit_status = HAL_UART_Transmit(&huart1, startup_message, 12, 1000);
   //packet.outstr = "DOG-TOOTHv02";
 
   HAL_TIM_Base_Start_IT(&htim1);
@@ -155,17 +155,21 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	if (DO_SCAN)// && HAL_GPIO_ReadPin(GPIOC, FDC_INTB_Pin))
 	{
-	  //transmit_status = HAL_UART_Transmit_IT(&huart2, packet.outstr, 12);
+	  transmit_status = HAL_UART_Transmit_IT(&huart1,
+	  	  packet.outstr, sizeof(packet.outstr));
 	  GIRAFFE_FDC2114_read_channels_IT(&i2c_state);
-	  //transmit_status = HAL_UART_Transmit(&huart2, packet.outstr, 12, HAL_MAX_DELAY);
+	  //transmit_status = HAL_UART_Transmit(&huart1, packet.outstr,
+		//	  sizeof(packet.outstr), HAL_MAX_DELAY);
 
 	  //GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
 	  next_packet_data.status = 0;
 	  next_packet_data.seq++;
-	  while (/*(UART_TX_DONE == 0) ||*/ (i2c_state.num_reads_remaining != 0)) {
-		  /* WAiT FOR iTT */ }
-	  GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
-	  packet.packet_data = next_packet_data; // *copy* next packet
+	  while ((UART_TX_DONE == 0)
+			 || ((i2c_state.num_reads_remaining != 0)
+			      && (!GIRAFFE_is_error_severe(i2c_state.error))))
+	  {}
+	  //GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
+	  //packet.packet_data = next_packet_data; // *copy* next packet
 	  UART_TX_DONE = 0;
 	  DO_SCAN = 0;
 	}
@@ -215,8 +219,8 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C3;
-  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C3;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
   PeriphClkInit.I2c3ClockSelection = RCC_I2C3CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -324,53 +328,37 @@ static void MX_TIM1_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
-	  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN USART1_Init 0 */
 
-	  /*Configure GPIO pin : Tx_Pin */
-	  GPIO_InitStruct.Pin = USART_TX_Pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	  HAL_GPIO_Init(USART_TX_GPIO_Port, &GPIO_InitStruct);
+  /* USER CODE END USART1_Init 0 */
 
-	  /*Configure GPIO pin : Rx_Pin */
-	  GPIO_InitStruct.Pin = USART_RX_Pin;
-	  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-	  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-	  GPIO_InitStruct.Pull = GPIO_NOPULL;
-	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	  HAL_GPIO_Init(USART_RX_GPIO_Port, &GPIO_InitStruct);
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -413,6 +401,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(FDC_INTB_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : USART_TX_Pin USART_RX_Pin */
+  GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD4_Pin */
   GPIO_InitStruct.Pin = LD4_Pin;
@@ -480,7 +476,16 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 {
-	while(1);
+	switch (hi2c->ErrorCode)
+	{
+	case HAL_I2C_ERROR_AF:
+    case HAL_I2C_ERROR_ARLO:
+    case HAL_I2C_ERROR_BERR:
+    	i2c_state.error = BUS_ERROR;
+    	break;
+    default:
+    	i2c_state.error = OTHER_ERROR;
+	}
 }
 /* USER CODE END 4 */
 
