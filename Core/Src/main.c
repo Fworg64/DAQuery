@@ -168,8 +168,8 @@ int main(void)
 			 || ((i2c_state.num_reads_remaining != 0)
 			      && (!GIRAFFE_is_error_severe(i2c_state.error))))
 	  {}
-	  //GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
-	  //packet.packet_data = next_packet_data; // *copy* next packet
+	  GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
+	  packet.packet_data = next_packet_data; // *copy* next packet
 	  UART_TX_DONE = 0;
 	  DO_SCAN = 0;
 	}
