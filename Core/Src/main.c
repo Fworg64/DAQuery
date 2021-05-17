@@ -156,11 +156,11 @@ int main(void)
 	if (DO_SCAN)// && HAL_GPIO_ReadPin(GPIOC, FDC_INTB_Pin))
 	{
 	  transmit_status = HAL_UART_Transmit_IT(&huart1,
-	  	  packet.outstr, sizeof(packet.outstr));
+			               packet.outstr, sizeof(packet.outstr));
 	  GIRAFFE_FDC2114_read_channels_IT(&i2c_state);
+
 	  //transmit_status = HAL_UART_Transmit(&huart1, packet.outstr,
 		//	  sizeof(packet.outstr), HAL_MAX_DELAY);
-
 	  //GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
 	  next_packet_data.status = 0;
 	  next_packet_data.seq++;
