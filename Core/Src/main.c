@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "GIRAFFE_fdc2114.h"
+#include "checksum.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -133,16 +134,22 @@ int main(void)
 	  uint16_t status;
 	  uint16_t seq;
 	  GIRAFFE_FDC2114_channel_data_t chan_data;
+	  uint16_t crc;
   } next_packet_data;
 
   union packet_u
   {
-	  uint8_t outstr[12];
+	  uint8_t outstr[14];
 	  struct packet_data_s packet_data;
   } packet;
 
-  uint8_t startup_message[] = "DOG-TOOTHv02";
-  transmit_status = HAL_UART_Transmit(&huart1, startup_message, 12, 1000);
+  uint8_t startup_message[] = "DOG-TOOTHv03"; // note null termination
+  uint16_t packet_payload_crc = crc_16(startup_message, sizeof(startup_message)-1);
+  memcpy(packet.outstr, startup_message, sizeof(startup_message)-1);
+  packet.packet_data.crc = packet_payload_crc;
+  transmit_status = HAL_UART_Transmit(&huart1, packet.outstr, sizeof(packet.outstr), 1000);
+
+  memset(packet.outstr, 0, sizeof(packet.outstr));
   //packet.outstr = "DOG-TOOTHv02";
 
   HAL_TIM_Base_Start_IT(&htim1);
@@ -156,20 +163,28 @@ int main(void)
 	if (DO_SCAN)// && HAL_GPIO_ReadPin(GPIOC, FDC_INTB_Pin))
 	{
 	  transmit_status = HAL_UART_Transmit_IT(&huart1,
-			               packet.outstr, sizeof(packet.outstr));
+	  	               packet.outstr, sizeof(packet.outstr));
 	  GIRAFFE_FDC2114_read_channels_IT(&i2c_state);
 
 	  //transmit_status = HAL_UART_Transmit(&huart1, packet.outstr,
-		//	  sizeof(packet.outstr), HAL_MAX_DELAY);
+	//		  sizeof(packet.outstr), HAL_MAX_DELAY);
 	  //GIRAFFE_FDC2114_read_channels(&next_packet_data.chan_data);
 	  next_packet_data.status = 0;
 	  next_packet_data.seq++;
-	  while ((UART_TX_DONE == 0)
+
+	  while ((UART_TX_DONE == 0) // while the uart is not done or the i2c is not done (and i2c is in a normal state)
 			 || ((i2c_state.num_reads_remaining != 0)
 			      && (!GIRAFFE_is_error_severe(i2c_state.error))))
 	  {}
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
 	  GIRAFFE_FDC2114_get_chan_data_from_state(&i2c_state, &next_packet_data.chan_data);
-	  packet.packet_data = next_packet_data; // *copy* next packet
+
+	  packet.packet_data = next_packet_data; // *copy* data to packet
+	  // The union takes care of putting the data in a c string
+	  packet_payload_crc = crc_16(packet.outstr, 12); // Calculate checksum on header, seq, and data (12 bytes)
+	  packet.packet_data.crc = packet_payload_crc; // sign packet with checksum
+
 	  UART_TX_DONE = 0;
 	  DO_SCAN = 0;
 	}
@@ -301,7 +316,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 32;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 20000;
+  htim1.Init.Period = 3040;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -455,7 +470,15 @@ GIRAFFE_i2c_status_t i2c_write_wrapper_IT(uint16_t dev_addr, uint8_t *data, uint
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
+	  if (GIRAFFE_is_error_severe(i2c_state.error))
+      {
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+	  }
+	  else
+	  {
+		  //HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+	  }
       DO_SCAN = 1;
 }
 
