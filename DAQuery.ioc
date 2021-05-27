@@ -221,4 +221,3 @@ PC1.Mode=I2C
 PC3.GPIO_PuPd=GPIO_NOPULL
 PA3.GPIO_Label=USART_RX
 I2C3.I2C_Speed_Mode=I2C_Fast
-isbadioc=false
