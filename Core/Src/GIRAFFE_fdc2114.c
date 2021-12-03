@@ -91,7 +91,7 @@ vals[drive_current_ch3] = 0xA000;
 
 void set_default_special_vals(uint16_t* vals)
 {
-	vals[reset_dev] = 0x0600; 	//set gain w/ MSB 0x06 => 16, 0x04 => 8, 0x02 => 4, 0x00 => 1
+	vals[reset_dev] = 0x0200; 	//set gain w/ MSB 0x06 => 16, 0x04 => 8, 0x02 => 4, 0x00 => 1
 }
 
 void GIRAFFE_FDC2114_initialize_lib(GIRAFFE_i2c_status_t (*i2c_read)(uint16_t, uint8_t *, uint16_t),
