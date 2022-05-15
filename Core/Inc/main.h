@@ -66,6 +66,10 @@ void Error_Handler(void);
 #define I2C3_SDA_GPIO_Port GPIOC
 #define FDC_INTB_Pin GPIO_PIN_3
 #define FDC_INTB_GPIO_Port GPIOC
+#define SNGLSNS_Pin GPIO_PIN_0
+#define SNGLSNS_GPIO_Port GPIOA
+#define SNGLHIGH_Pin GPIO_PIN_1
+#define SNGLHIGH_GPIO_Port GPIOA
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3

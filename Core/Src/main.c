@@ -120,7 +120,16 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET); // un-shutdown
   HAL_Delay(10);
   HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-
+  //Check for differential sensor jumper
+  if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET) // set with jumper to A1
+  {
+	  GIRAFFE_FDC2114_set_single_ended();
+	  for (uint8_t index=0; index<20; index++)
+	  {
+		  HAL_Delay(100); //flashy
+	      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); //flashy
+	  }
+  }
   GIRAFFE_FDC2114_init_dev(); //not checking if OK, but we could
   /* USER CODE END 2 */
 
@@ -396,6 +405,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SNGLHIGH_GPIO_Port, SNGLHIGH_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
@@ -416,6 +428,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(FDC_INTB_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SNGLSNS_Pin */
+  GPIO_InitStruct.Pin = SNGLSNS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(SNGLSNS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SNGLHIGH_Pin */
+  GPIO_InitStruct.Pin = SNGLHIGH_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SNGLHIGH_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : USART_TX_Pin USART_RX_Pin */
   GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;

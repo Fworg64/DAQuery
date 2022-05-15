@@ -111,6 +111,14 @@ void GIRAFFE_FDC2114_initialize_IT(GIRAFFE_i2c_status_t (*i2c_read_it)(uint16_t,
 	i2c_rw_funcs_IT.i2c_write_it = i2c_write_it;
 }
 
+void GIRAFFE_FDC2114_set_single_ended()
+{
+	CONFIG_VALS[clock_dividers_ch0] = 0x2001;
+	CONFIG_VALS[clock_dividers_ch1] = 0x2001;
+	CONFIG_VALS[clock_dividers_ch2] = 0x2001;
+	CONFIG_VALS[clock_dividers_ch3] = 0x2001;
+}
+
 void write_register_list(const uint8_t* registers, const uint16_t* values, int number)
 {
   GIRAFFE_i2c_status_t result;
@@ -192,6 +200,9 @@ uint8_t GIRAFFE_is_error_severe(GIRAFFE_i2c_error_type_t err)
 	  case BUS_ERROR:
 		  return 1;
 	  case OTHER_ERROR:
+	  case NONE:
+		  return 0;
+	  default:
 		  return 0;
 	}
 	return 0;

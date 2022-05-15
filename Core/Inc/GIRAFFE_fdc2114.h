@@ -90,6 +90,8 @@ void GIRAFFE_FDC2114_initialize_lib(GIRAFFE_i2c_status_t (*i2c_read)(uint16_t, u
 void GIRAFFE_FDC2114_initialize_IT(GIRAFFE_i2c_status_t (*i2c_read_it)(uint16_t, uint8_t *, uint16_t),
 		                           GIRAFFE_i2c_status_t (*i2c_write_it)(uint16_t, uint8_t *, uint16_t));
 
+void GIRAFFE_FDC2114_set_single_ended(); // Call between initialize_lib and init_dev to set single ended config bits
+
 GIRAFFE_i2c_status_t GIRAFFE_FDC2114_init_dev();
 
 void GIRAFFE_FDC2114_read_channels(GIRAFFE_FDC2114_channel_data_t* data);
